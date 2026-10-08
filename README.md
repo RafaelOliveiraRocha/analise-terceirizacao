@@ -2,13 +2,13 @@
 
 Notebook Python para conciliar exportações CSV de uma **plataforma de delivery** e de um **prestador de entregas sob demanda**, relacionando pedidos e comparando o custo do prestador com o campo de valor cliente. Processa **arquivos locais** com pandas e apresenta tabelas e gráfico Plotly; não consulta APIs nem exige credenciais das fontes.
 
-O trabalho original foi registrado em **12 de janeiro de 2024**. Esta revisão acrescenta validações, contagens e uma demonstração inteiramente sintética. Os CSVs históricos da raiz têm somente cabeçalhos; seus resultados antigos **não foram reproduzidos**. As saídas salvas em `analise.ipynb` agora pertencem ao exemplo fictício, não a operações reais.
+O trabalho tem registro de **12 de janeiro de 2024**. O notebook inclui validações, contagens e duas demonstrações inteiramente sintéticas. Os CSVs da raiz contêm somente cabeçalhos; use as entradas de `examples/` para executar os exemplos. As saídas salvas em `analise.ipynb` pertencem à demonstração fictícia.
 
 ![Gráfico real do exemplo sintético principal](docs/images/terceirizacao-exemplo.png)
 
 ## Instalar e executar
 
-Ambiente conferido: **Python 3.10.12**, pandas 2.2.3, Plotly 5.17.0, JupyterLab 4.3.4, ipykernel 6.29.5 e nbformat 5.10.4. Use Python 3.10 e os pacotes de `requirements.txt`; não precisa de banco, serviço externo ou dados operacionais.
+Ambiente de referência: **Python 3.10.12**, pandas 2.2.3, Plotly 5.17.0, JupyterLab 4.3.4, ipykernel 6.29.5 e nbformat 5.10.4. Use Python 3.10 e os pacotes de `requirements.txt`; não precisa de banco, serviço externo ou dados operacionais.
 
 Na raiz do checkout, em Bash/Linux:
 
@@ -27,7 +27,7 @@ Abra no navegador a URL local apresentada pelo Jupyter. No explorador de arquivo
 
 A configuração começa com `CENARIO = "principal"`. Para a outra demonstração, troque por `"duplicidades"`, reinicie o kernel e execute todas as células novamente. Depois de mudar entradas ou após uma falha, execute desde a configuração. Encerre o servidor com `Ctrl+C` no terminal.
 
-Os comandos acima usam Bash; em outros sistemas, adapte somente a ativação do ambiente virtual. O kernel é instalado dentro de `.venv` com `--sys-prefix`, sem alterar configurações remotas.
+Os comandos acima usam Bash; em outros sistemas, adapte somente a ativação do ambiente virtual. O kernel é instalado dentro de `.venv` com `--sys-prefix`.
 
 ## Fluxo e convenção dos valores
 
@@ -44,7 +44,7 @@ Não há deduplicação nem escolha de um pareamento preferido. O notebook mostr
 
 Ambas usam **vírgula como separador**, **ponto decimal**, **UTF-8** e aspas CSV padrão. Não há conversão de valores com vírgula decimal, `R$` ou agrupadores de milhares. Identificadores e valores financeiros nas linhas usadas devem ser numéricos e finitos; identificadores fracionários são rejeitados. Ausentes/incompatíveis interrompem a análise com campo e posição da linha de dados, sem preencher valores arbitrariamente.
 
-Os cabeçalhos das entradas mantêm o esquema original, que não contém nomes de empresas. `ID PEDIDO` e `TOTAL PAGO PRESTADOR` são nomes genéricos das **colunas derivadas** da análise e das referências sintéticas desta revisão; não são novos campos exigidos nos CSVs de entrada.
+`ID PEDIDO` e `TOTAL PAGO PRESTADOR` são **colunas derivadas** da análise e dos resultados de referência; não são campos exigidos nos CSVs de entrada.
 
 ### Extrato do prestador: `extrato-rede_parceira.csv`
 
@@ -91,7 +91,7 @@ Cabeçalho na primeira linha, sem preâmbulo:
 
 Após o filtro de telefone, ausência de `DATA`, `PEDIDO` ou valor cliente interrompe a análise. Não há preenchimento por zero. Textos interpretados como ausentes pelo parser CSV também participam desses tratamentos.
 
-Nos exemplos principais, `DATA` usa **`YYYY-MM-DD` com zeros**, permitindo que a ordenação textual seja cronológica. A revisão **não converte nem restringe datas históricas**: outros textos não vazios continuam sendo agrupados e ordenados lexicograficamente. Datas ausentes são rejeitadas para evitar que valores desapareçam do gráfico.
+Nos exemplos principais, `DATA` usa **`YYYY-MM-DD` com zeros**, permitindo que a ordenação textual seja cronológica. O código **não converte datas para um tipo calendário**: outros textos não vazios continuam sendo agrupados e ordenados lexicograficamente. Datas ausentes são rejeitadas para evitar que valores desapareçam do gráfico.
 
 ## Demonstrações e resultados esperados
 
@@ -112,9 +112,9 @@ Três entradas em cada fonte, três pareamentos, nenhum filtro/exclusão, nenhum
 
 [Extrato sintético](examples/duplicidades/extrato-rede_parceira.csv), [pedidos sintéticos](examples/duplicidades/terceirizados.csv), [resultado esperado](examples/duplicidades/resultado-esperado.csv).
 
-Preserva o cenário do diagnóstico: **8 linhas do prestador e 5 da plataforma**. Exclui uma por `TYPE`, uma por status, uma sem identificador e uma por telefone ausente. Restam cinco e quatro linhas aptas; duas à esquerda e uma à direita não têm par. Há uma chave repetida em cada fonte, com duas linhas em cada uma. O ID `1002` gera **2 × 2 = 4 linhas**; `1001`, uma.
+Este cenário contém **8 linhas do prestador e 5 da plataforma**. Exclui uma por `TYPE`, uma por status, uma sem identificador e uma por telefone ausente. Restam cinco e quatro linhas aptas; duas à esquerda e uma à direita não têm par. Há uma chave repetida em cada fonte, com duas linhas em cada uma. O ID `1002` gera **2 × 2 = 4 linhas**; `1001`, uma.
 
-Referência: **5 linhas, 2 IDs distintos, custo R$ 52,50, valor cliente R$ 38,00 e diferença +R$ 14,50**. Essas somas incluem a multiplicação de correspondências: **não são um resultado financeiro operacional**. Nenhuma deduplicação foi aplicada. Os textos de data deste cenário preservam a ordenação lexicográfica observada no diagnóstico.
+Referência: **5 linhas, 2 IDs distintos, custo R$ 52,50, valor cliente R$ 38,00 e diferença +R$ 14,50**. Essas somas incluem a multiplicação de correspondências: **não são um resultado financeiro operacional**. Nenhuma deduplicação foi aplicada. Os textos de data deste cenário são ordenados lexicograficamente.
 
 ## Caminhos, arquivos gerados e proteção contra resultados antigos
 
@@ -126,13 +126,21 @@ Execute da raiz do checkout: caminhos são relativos ao diretório corrente. A c
 
 Entradas vazias ou sem correspondências geram somente cabeçalho e mensagem; não tentam criar gráfico. Uma falha invalida o estado da execução, mesmo que haja CSV anterior no disco. A etapa do gráfico exige processamento concluído nesta sequência e verifica o hash do CSV; execução fora de ordem, remoção ou alteração do resultado bloqueiam sua apresentação. Depois de trocar arquivos, reinicie a execução desde a configuração.
 
-## Precisão e decisões pendentes
+## Precisão e limites de interpretação
 
-Preservam-se a fórmula, os floats e `round(x, 2)` originais. A diferença por pedido vira texto no CSV; somas e diferenças diárias são recalculadas com os valores numéricos sem arredondamento prévio. Não há Decimal, política de centavos ou conversão de moeda. Por exemplo, `2.675` pode aparecer como `R$ 2,67`; somar diferenças arredondadas pode divergir de arredondar a soma. A classificação acima/abaixo/igual usa a diferença antes da formatação.
+Os valores usam floats e a formatação da diferença usa `round(x, 2)`. A diferença por pedido vira texto no CSV; somas e diferenças diárias são recalculadas com os valores numéricos sem arredondamento prévio. Não há Decimal, política de centavos ou conversão de moeda. Por exemplo, `2.675` pode aparecer como `R$ 2,67`; somar diferenças arredondadas pode divergir de arredondar a soma. A classificação acima/abaixo/igual usa a diferença antes da formatação.
 
-Permanecem pendentes: granularidade e tratamento das duplicidades; múltiplos marcadores `#`; significado de zeros à esquerda; finalidade do filtro de telefone; créditos positivos, ajustes e reembolsos; significado de valor cliente; critério de datas/período; precisão/arredondamento e política futura para dados ausentes. Esta revisão rejeita dados incompatíveis em vez de escolher conversões ou preenchimentos sem essa definição.
+A interpretação precisa considerar as regras implementadas:
 
-## Verificar localmente
+- IDs repetidos produzem todas as correspondências da junção, podendo multiplicar custos e valores; não há deduplicação.
+- Somente o primeiro marcador `#` é usado. A conversão da chave para inteiro elimina zeros à esquerda.
+- A ausência de telefone exclui o pedido, independentemente de sua situação operacional.
+- Créditos são multiplicados por −1, inclusive valores positivos. O código não distingue ajustes, reembolsos ou parcelas nem recompõe um custo total do negócio.
+- `VALOR PAGO CLIENTE` é comparado conforme fornecido; o contrato do arquivo não esclarece se representa cobrança ou recebimento efetivo.
+- Datas são agrupadas como texto. Não há filtro temporal criado a partir do preâmbulo ou conversão de calendário.
+- Dados obrigatórios ausentes ou incompatíveis interrompem o processamento, sem conversão de locale ou preenchimento automático.
+
+## Testes
 
 Com `.venv` ativado:
 
@@ -141,4 +149,4 @@ python -m pip check
 python -m unittest discover -s tests -v
 ```
 
-Os testes executam as células reais com arquivos em pastas temporárias. Conferem as referências sintéticas, contagens, duplicidades, filtros, sinais, vazio, ausência de pares, campos inválidos, precisão original e bloqueio de resultado antigo. A execução integral e o roteiro no Jupyter também foram conferidos nesta revisão. Nenhum serviço das fontes é chamado.
+Os testes executam as células reais com arquivos em pastas temporárias. Conferem as referências sintéticas, contagens, duplicidades, filtros, sinais, vazio, ausência de pares, campos inválidos, precisão original e bloqueio de resultado antigo. Nenhum serviço das fontes é chamado.
