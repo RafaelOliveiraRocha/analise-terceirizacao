@@ -1,0 +1,2 @@
+Cenário sintético de diagnóstico: duplicidades e não pareados, sem interpretação financeira operacional.
+Referência: 5 linhas, 2 IDs, custo 52.50, valor cliente 38.00, diferença +14.50.
