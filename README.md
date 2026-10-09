@@ -1,14 +1,31 @@
 # Conciliação de custos de entregas terceirizadas
 
-Notebook Python para conciliar exportações CSV de uma **plataforma de delivery** e de um **prestador de entregas sob demanda**, relacionando pedidos e comparando o custo do prestador com o campo de valor cliente. Processa **arquivos locais** com pandas e apresenta tabelas e gráfico Plotly; não consulta APIs nem exige credenciais das fontes.
+O projeto nasceu da necessidade de conciliar exportações de pedidos e custos de entregas terceirizadas, reduzindo cruzamentos manuais e organizando as diferenças por pedido e data. O notebook Python relaciona os arquivos de uma plataforma de delivery e de um prestador de entregas sob demanda, compara os campos de valor e consolida o resultado para análise.
 
-O trabalho tem registro de **12 de janeiro de 2024**. O notebook inclui validações, contagens e duas demonstrações inteiramente sintéticas. Os CSVs da raiz contêm somente cabeçalhos; use as entradas de `examples/` para executar os exemplos. As saídas salvas em `analise.ipynb` pertencem à demonstração fictícia.
+**Duas fontes CSV → filtros e correspondência por pedido → comparação dos valores → CSV consolidado e gráfico interativo.**
+
+O trabalho tem registro de **12 de janeiro de 2024**. O processamento usa arquivos locais com pandas e Plotly. As duas demonstrações incluídas e as saídas salvas no notebook usam dados inteiramente fictícios.
+
+## Demonstração principal — dados fictícios
+
+[Extrato sintético](examples/principal/extrato-rede_parceira.csv), [pedidos sintéticos](examples/principal/terceirizados.csv), [resultado esperado](examples/principal/resultado-esperado.csv).
+
+Os valores e identificadores abaixo são inteiramente fictícios. A diferença é **prestador − cliente**.
+
+| Data | ID | Prestador | Cliente | Diferença |
+|---|---:|---:|---:|---:|
+| 2024-01-02 | 1001 | R$ 12,50 | R$ 10,00 | +R$ 2,50 |
+| 2024-01-03 | 1002 | R$ 8,00 | R$ 10,00 | −R$ 2,00 |
+| 2024-01-04 | 1003 | R$ 10,00 | R$ 10,00 | R$ 0,00 |
+| **Total** | **3 IDs** | **R$ 30,50** | **R$ 30,00** | **+R$ 0,50** |
+
+Três entradas em cada fonte, três pareamentos, nenhum filtro/exclusão e nenhuma chave repetida ou não pareada.
 
 ![Gráfico real do exemplo sintético principal](docs/images/terceirizacao-exemplo.png)
 
 ## Instalar e executar
 
-Ambiente de referência: **Python 3.10.12**, pandas 2.2.3, Plotly 5.17.0, JupyterLab 4.3.4, ipykernel 6.29.5 e nbformat 5.10.4. Use Python 3.10 e os pacotes de `requirements.txt`; não precisa de banco, serviço externo ou dados operacionais.
+Ambiente de referência: **Python 3.10.12**, pandas 2.2.3, Plotly 5.17.0, JupyterLab 4.3.4, ipykernel 6.29.5 e nbformat 5.10.4. Use Python 3.10 e os pacotes de `requirements.txt`. O exemplo processa arquivos locais.
 
 Na raiz do checkout, em Bash/Linux:
 
@@ -29,11 +46,34 @@ A configuração começa com `CENARIO = "principal"`. Para a outra demonstraçã
 
 Os comandos acima usam Bash; em outros sistemas, adapte somente a ativação do ambiente virtual. O kernel é instalado dentro de `.venv` com `--sys-prefix`.
 
+## Experimente cópias dos CSVs
+
+Crie uma pasta local e copie as entradas do principal:
+
+```bash
+mkdir -p outputs/experimento/entradas
+cp examples/principal/extrato-rede_parceira.csv outputs/experimento/entradas/
+cp examples/principal/terceirizados.csv outputs/experimento/entradas/
+```
+
+Edite as cópias mantendo os nomes dos arquivos, todas as colunas, UTF-8, separador `,` e ponto decimal. No extrato, preserve as cinco linhas de preâmbulo e o cabeçalho na sexta linha. Use pedidos e valores fictícios; em `DATA`, o formato `YYYY-MM-DD` com zeros mantém a ordenação textual do exemplo.
+
+Na célula de configuração, substitua as atribuições de cenário e pastas pelas seguintes, mantendo os imports e demais definições:
+
+```python
+CENARIO = "experimento"
+PASTA_ENTRADAS = Path("outputs/experimento/entradas")
+PASTA_SAIDAS = Path("outputs/experimento")
+SAIDA_CSV = PASTA_SAIDAS / "resultado.csv"
+```
+
+Reinicie o kernel e execute todas as células desde a configuração. A nova saída ficará em `outputs/experimento/resultado.csv` e, quando houver correspondências, em `outputs/experimento/graficos/comparacao.html`. As referências de `examples/` permanecem separadas dos arquivos gerados.
+
 ## Fluxo e convenção dos valores
 
 1. Lê o extrato após cinco linhas de preâmbulo. Mantém exatamente `TYPE = ORDER` e `ORDER STATUS = COMPLETED`, sem normalizar caixa ou espaços.
 2. Extrai a **primeira sequência de dígitos após `#`** em `ORDER REMARK`. Os pedidos sem identificador extraído são excluídos da correspondência, com contagem.
-3. Lê a segunda fonte, exclui linhas com `TELEFONE` ausente e descarta `NOME`/`TELEFONE`. Preserva esse filtro histórico, sem validar formato de telefone; espaço isolado ainda é considerado presente.
+3. Lê a segunda fonte, exclui linhas com `TELEFONE` ausente e descarta `NOME`/`TELEFONE`. Esse filtro verifica presença, sem validar formato de telefone; espaço isolado ainda é considerado presente.
 4. Valida identificadores inteiros antes de convertê-los. Relaciona `ID PEDIDO` com `PEDIDO` por junção **inner**: os não pareados ficam fora do resultado, mas suas contagens são apresentadas de cada lado.
 5. Converte `CREDITS (+/-)` em `TOTAL PAGO PRESTADOR` multiplicando por **−1**, sem valor absoluto. Calcula **diferença = prestador − cliente**, exportada em `DIFERENÇA PRESTADOR - CLIENTE`. Positivo significa custo acima desse campo cliente; negativo abaixo; zero igualdade. Não representa lucro/prejuízo ou custo total do negócio.
 6. Exporta CSV e soma os valores por `DATA` para o gráfico, destacando até três maiores diferenças assinadas. Mostra também somas de km extra, prioridade e sobrecarga. Não recompõe o total pela soma das tarifas nem calcula custo/km.
@@ -45,6 +85,9 @@ Não há deduplicação nem escolha de um pareamento preferido. O notebook mostr
 Ambas usam **vírgula como separador**, **ponto decimal**, **UTF-8** e aspas CSV padrão. Não há conversão de valores com vírgula decimal, `R$` ou agrupadores de milhares. Identificadores e valores financeiros nas linhas usadas devem ser numéricos e finitos; identificadores fracionários são rejeitados. Ausentes/incompatíveis interrompem a análise com campo e posição da linha de dados, sem preencher valores arbitrariamente.
 
 `ID PEDIDO` e `TOTAL PAGO PRESTADOR` são **colunas derivadas** da análise e dos resultados de referência; não são campos exigidos nos CSVs de entrada.
+
+<details>
+<summary>Dicionário completo do extrato: 44 colunas obrigatórias</summary>
 
 ### Extrato do prestador: `extrato-rede_parceira.csv`
 
@@ -77,6 +120,8 @@ VEHICLE SPECIFICATION, CS ADJUSTMENT, REFUND, CANCELLATION FEE
 CANCELLATION FEE REFUND, SERVICE TYPE, ORDER PATH, REFUND DATE
 ```
 
+</details>
+
 ### Pedidos da plataforma: `terceirizados.csv`
 
 Cabeçalho na primeira linha, sem preâmbulo:
@@ -93,22 +138,7 @@ Após o filtro de telefone, ausência de `DATA`, `PEDIDO` ou valor cliente inter
 
 Nos exemplos principais, `DATA` usa **`YYYY-MM-DD` com zeros**, permitindo que a ordenação textual seja cronológica. O código **não converte datas para um tipo calendário**: outros textos não vazios continuam sendo agrupados e ordenados lexicograficamente. Datas ausentes são rejeitadas para evitar que valores desapareçam do gráfico.
 
-## Demonstrações e resultados esperados
-
-### Principal — IDs únicos
-
-[Extrato sintético](examples/principal/extrato-rede_parceira.csv), [pedidos sintéticos](examples/principal/terceirizados.csv), [resultado esperado](examples/principal/resultado-esperado.csv).
-
-| Data | ID | Prestador | Cliente | Diferença |
-|---|---:|---:|---:|---:|
-| 2024-01-02 | 1001 | R$ 12,50 | R$ 10,00 | +R$ 2,50 |
-| 2024-01-03 | 1002 | R$ 8,00 | R$ 10,00 | −R$ 2,00 |
-| 2024-01-04 | 1003 | R$ 10,00 | R$ 10,00 | R$ 0,00 |
-| **Total** | **3 IDs** | **R$ 30,50** | **R$ 30,00** | **+R$ 0,50** |
-
-Três entradas em cada fonte, três pareamentos, nenhum filtro/exclusão, nenhuma chave repetida ou não pareada. Todas as pessoas, telefones, pedidos e valores são fictícios.
-
-### Duplicidades e não pareados — demonstração de comportamento
+## Duplicidades e não pareados
 
 [Extrato sintético](examples/duplicidades/extrato-rede_parceira.csv), [pedidos sintéticos](examples/duplicidades/terceirizados.csv), [resultado esperado](examples/duplicidades/resultado-esperado.csv).
 
@@ -116,9 +146,9 @@ Este cenário contém **8 linhas do prestador e 5 da plataforma**. Exclui uma po
 
 Referência: **5 linhas, 2 IDs distintos, custo R$ 52,50, valor cliente R$ 38,00 e diferença +R$ 14,50**. Essas somas incluem a multiplicação de correspondências: **não são um resultado financeiro operacional**. Nenhuma deduplicação foi aplicada. Os textos de data deste cenário são ordenados lexicograficamente.
 
-## Caminhos, arquivos gerados e proteção contra resultados antigos
+## Saídas locais e referências
 
-Execute da raiz do checkout: caminhos são relativos ao diretório corrente. A configuração usa `examples/<cenario>/` para entrada e `outputs/<cenario>/` para saída. Para conferir apenas os cabeçalhos da raiz, defina `PASTA_ENTRADAS = Path(".")` e `PASTA_SAIDAS = Path("outputs/cabecalhos")`, atualizando `SAIDA_CSV` na configuração; não há registros históricos para analisar.
+Execute da raiz do checkout: caminhos são relativos ao diretório corrente. Por padrão, a configuração usa `examples/<cenario>/` para entrada e `outputs/<cenario>/` para saída. `resultado.csv` e `graficos/comparacao.html` são gerados localmente; os CSVs de resultado esperado em `examples/` são referências versionadas. Os CSVs da raiz contêm somente cabeçalhos.
 
 - `outputs/<cenario>/resultado.csv`: sobrescrito **após processamento válido**, sem índice, UTF-8/vírgula. Tem 11 colunas e a diferença formatada como texto `R$ ...` com vírgula decimal; os demais valores financeiros permanecem numéricos.
 - `outputs/<cenario>/graficos/comparacao.html`: gráfico local com Plotly embutido, sem CDN ou interpretação matemática dos símbolos `R$`. O notebook exibe esse arquivo em um iframe no Jupyter; cada execução válida com correspondências sobrescreve o HTML.
@@ -136,7 +166,7 @@ A interpretação precisa considerar as regras implementadas:
 - Somente o primeiro marcador `#` é usado. A conversão da chave para inteiro elimina zeros à esquerda.
 - A ausência de telefone exclui o pedido, independentemente de sua situação operacional.
 - Créditos são multiplicados por −1, inclusive valores positivos. O código não distingue ajustes, reembolsos ou parcelas nem recompõe um custo total do negócio.
-- `VALOR PAGO CLIENTE` é comparado conforme fornecido; o contrato do arquivo não esclarece se representa cobrança ou recebimento efetivo.
+- `VALOR PAGO CLIENTE` é comparado conforme fornecido, sem confirmar cobrança ou recebimento efetivo.
 - Datas são agrupadas como texto. Não há filtro temporal criado a partir do preâmbulo ou conversão de calendário.
 - Dados obrigatórios ausentes ou incompatíveis interrompem o processamento, sem conversão de locale ou preenchimento automático.
 
